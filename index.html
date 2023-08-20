@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Quiz-Generator</title>
+
+    <script type="module">
+      import zim from "https://zimjs.org/cdn/015/zim";
+
+      async function fetchQuizzesStartingWith(key) {
+        const response = await fetch(
+          `https://fastapi-redis-crud.vercel.app/read_all_startwith?key=${encodeURIComponent(
+            key
+          )}`
+        );
+        zog(response);
+        const data = await response.json();
+        zog(data);
+        return data;
+      }
+
+      function replaceQuotes(str) {
+        return str.replace(/'/g, '"');
+      }
+
+      function formatNumbers(str) {
+        return str.replace(/(?<![\d])[1-9](?!\w)/g, function (match) {
+          return `'${match}'`;
+        });
+      }
+
+      let message_nr;
+      let frage_nr;
+      let question = "";
+      let answers = "";
+      let correct_answer = "";
+      let correct_answer_text = "";
+
+      // See Docs under Frame for FIT, FILL, FULL, and TAG
+      new Frame(FIT, 1024, 768, light, dark, ready);
+      function ready() {
+        // given F (Frame), S (Stage), W (width), H (height)
+        // put code here
+        let themen_nr_label = new Label({
+          text: "Themen-Nr.:",
+          color: "#4169E1",
+        }).pos(20, 103);
+
+        let themen_nr_input = new Stepper({
+          width: 70,
+          height: 28,
+          size: 28,
+          //align: "center",
+          color: "#4169E1",
+        }).pos(230, 91);
+
+        let frage_nr_label = new Label({
+          text: "Frage-Nr.:",
+          color: "#4169E1",
+        }).pos(20, 175);
+
+        let frage_nr_input = new Stepper({
+          width: 70,
+          height: 28,
+          size: 28,
+          //align: "center",
+          color: "#4169E1",
+        }).pos(230, 164);
+
+        new Button(385, 50, "Get Questions", "#4169E1")
+          .pos(20, 250)
+          .tap(async () => {
+            message_nr = themen_nr_input.currentValue; // increase diffeentls 0-x (message sind die ganzen sets)
+            frage_nr = frage_nr_input.currentValue; // increase differntly 0-x (frage ist die einzelne set_nr)
+            const quizzes = await fetchQuizzesStartingWith("quiz");
+            console.log(quizzes);
+
+            let formated = formatNumbers(
+              quizzes["messages"][message_nr]["Value"]
+            );
+
+            console.log(replaceQuotes(formated));
+
+            let selected_set = JSON.parse(replaceQuotes(formated));
+
+            console.log(selected_set[frage_nr].question);
+            console.log(selected_set[frage_nr].answers);
+            console.log(selected_set[frage_nr].correct_answer);
+            console.log(
+              selected_set[frage_nr].answers[
+                selected_set[frage_nr].correct_answer
+              ]
+            );
+
+            question = selected_set[frage_nr].question;
+            answers = selected_set[frage_nr].answers;
+            correct_answer = selected_set[frage_nr].correct_answer;
+            correct_answer_text =
+              selected_set[frage_nr].answers[
+                selected_set[frage_nr].correct_answer
+              ];
+            label_question.text = question;
+
+            let result_answers_strings = "";
+
+            for (let key in answers) {
+              result_answers_strings += `${key}) ${answers[key]} \n`;
+            }
+
+            label_answers.text = result_answers_strings;
+
+            let xpos = -200;
+            let prevCorrLabels = [];
+
+            // Remove any previous correction labels before creating new ones
+            prevCorrLabels.forEach((label) => {
+              label.removeFrom(S);
+            });
+            prevCorrLabels = [];
+
+            for (let key in answers) {
+              // Create a new label for the current answer
+              let answerLabel = new Label({
+                text: `${key}`,
+                color: "white",
+                bold: true,
+                backgroundColor: "#4B0082",
+                size: 80,
+              }).hov("#6AB04D");
+              answerLabel.center().mov(xpos, 260);
+
+              // Add a tap event listener to the label
+              answerLabel.expand().tap({
+                distance: 100,
+                call: () => {
+                  // Check if the label is correct
+                  if (key === correct_answer) {
+                    zog("Richtig!");
+
+                    // Create a new correction label
+                    let corrLabel = new Label({
+                      text: "RICHTIG!",
+                      color: "#3eaf1f",
+                      bold: true,
+                      size: 46,
+                    });
+                    corrLabel.pos(0, 100, CENTER, CENTER);
+                    S.update();
+                    prevCorrLabels.push(corrLabel);
+                  } else {
+                    zog("Falsch!");
+
+                    // Create a new correction label
+                    let corrLabel = new Label({
+                      text: "FALSCH!",
+                      color: red,
+                      bold: true,
+                      size: 46,
+                    });
+                    corrLabel.pos(0, 100, CENTER, CENTER);
+                    S.update();
+                    prevCorrLabels.push(corrLabel);
+                  }
+
+                  // Remove any previous correction labels
+                  prevCorrLabels.forEach((label) => {
+                    label.removeFrom(S);
+                  });
+                  prevCorrLabels = [];
+                },
+              });
+
+              xpos += 150;
+            }
+            //TODO: add check if more messages in quizzes["messages"][question_nr]
+            message_nr += 1;
+            S.update();
+          });
+
+        let label_question = new Label({
+          text: question,
+          align: "left",
+          color: "#4B0082",
+        }).pos(20, 340);
+
+        let label_answers = new Label({
+          text: answers,
+          align: "left",
+          color: "#4B0082",
+        }).pos(20, 410);
+
+        let label_title = new Label({
+          text: "Quiz-Generator",
+          align: "left",
+          color: "#9A3C99",
+          bold: true,
+          size: 48,
+        }).pos(20, 20);
+
+        new Button(200, 60, "add topics").pos(20, 20, RIGHT, TOP).tap(() => {
+          zgo("https://langchainquizgenerator-ajerni.b4a.run/docs", "_blank");
+        });
+      } // end ready
+    </script>
+    <meta name="viewport" content="width=device-width, user-scalable=no" />
+  </head>
+  <body></body>
+</html>
