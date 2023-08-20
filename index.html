@@ -36,6 +36,8 @@
       let correct_answer = "";
       let correct_answer_text = "";
 
+      let score = 0;
+
       // See Docs under Frame for FIT, FILL, FULL, and TAG
       new Frame(FIT, 1024, 768, light, dark, ready);
       function ready() {
@@ -131,7 +133,7 @@
 
               // Add a tap event listener to the label
               answerLabel.expand().tap({
-                distance: 100,
+                once: true,
                 call: () => {
                   // Check if the label is correct
                   if (key === correct_answer) {
@@ -145,6 +147,8 @@
                       size: 46,
                     });
                     corrLabel.pos(0, 100, CENTER, CENTER);
+                    score += 1;
+                    label_score.text = "Score: " + score;
                     S.update();
                     prevCorrLabels.push(corrLabel);
                   } else {
@@ -172,8 +176,7 @@
 
               xpos += 150;
             }
-            //TODO: add check if more messages in quizzes["messages"][question_nr]
-            message_nr += 1;
+
             S.update();
           });
 
@@ -188,6 +191,12 @@
           align: "left",
           color: "#4B0082",
         }).pos(20, 410);
+
+        let label_score = new Label({
+          text: "Score: " + score,
+          align: "center",
+          color: "#4B0082",
+        }).pos(20, 100, RIGHT, TOP);
 
         let label_title = new Label({
           text: "Quiz-Generator",
